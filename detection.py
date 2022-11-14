@@ -14,8 +14,8 @@ class colors():
     RED = "\033[91m"
     END = "\033[0m"
 
-BLOCK_SIZE = 8
-ALPHA = 1 # 24
+BLOCK_SIZE = 4
+ALPHA = 2
 THRESHOLD = 11.79
 
 # it creates a 16x16 4d matrix with 8x8 sub-matrices in A[i,j]. The 4d matrix is a 16x16 matrix because the original one is 128x128 and each block is 8x8
@@ -36,8 +36,8 @@ def apdcbt(imm):
     return Y
     
 def get_coefficient_matrix(image_block):
-    for i in range(16):
-        for j in range(16):
+    for i in range(32):
+        for j in range(32):
             image_block[i][j] = apdcbt(image_block[i][j])
     return image_block
 
@@ -77,14 +77,14 @@ def extract_watermark(image, watermarked, alpha=ALPHA):
     LL_w, (LH_w, HL_w, HH_w) = pywt.dwt2(watermarked, 'haar')
     LL2_w, (LH2_w, HL2_w, HH2_w) = pywt.dwt2(LL_w, 'haar')
 
-    LH2 = np.reshape(LH2, (16,16,8,8))
-    HL2 = np.reshape(HL2, (16,16,8,8))
+    LH2 = np.reshape(LH2, (32, 32, 4, 4))
+    HL2 = np.reshape(HL2, (32, 32, 4, 4))
 
     coefficient_matrix_LH2 = get_coefficient_matrix(LH2)
     coefficient_matrix_HL2 = get_coefficient_matrix(HL2)
 
-    LH2_w = np.reshape(LH2_w, (16,16,8,8))
-    HL2_w = np.reshape(HL2_w, (16,16,8,8))
+    LH2_w = np.reshape(LH2_w, (32, 32, 4, 4))
+    HL2_w = np.reshape(HL2_w, (32, 32, 4, 4))
 
     coefficient_matrix_LH2_w = get_coefficient_matrix(LH2_w)
     coefficient_matrix_HL2_w = get_coefficient_matrix(HL2_w)
@@ -99,8 +99,8 @@ def extract_watermark(image, watermarked, alpha=ALPHA):
 
     coefficient_matrix_LH2_w = abs(coefficient_matrix_LH2_w)
 
-    coefficient_matrix_LH2 = np.reshape(coefficient_matrix_LH2, (16*16*8*8,))
-    coefficient_matrix_LH2_w = np.reshape(coefficient_matrix_LH2_w, (16*16*8*8,))
+    coefficient_matrix_LH2 = np.reshape(coefficient_matrix_LH2, (32*32*4*4,))
+    coefficient_matrix_LH2_w = np.reshape(coefficient_matrix_LH2_w, (32*32*4*4,))
 
     for idx, loc in enumerate(locations[1:1024+1]):
         w1[idx] =  (coefficient_matrix_LH2_w[loc] - coefficient_matrix_LH2[loc]) / alpha
@@ -111,8 +111,8 @@ def extract_watermark(image, watermarked, alpha=ALPHA):
 
     coefficient_matrix_HL2_w = abs(coefficient_matrix_HL2_w)
 
-    coefficient_matrix_HL2 = np.reshape(coefficient_matrix_HL2, (16*16*8*8,))
-    coefficient_matrix_HL2_w = np.reshape(coefficient_matrix_HL2_w, (16*16*8*8,))
+    coefficient_matrix_HL2 = np.reshape(coefficient_matrix_HL2, (32*32*4*4,))
+    coefficient_matrix_HL2_w = np.reshape(coefficient_matrix_HL2_w, (32*32*4*4,))
 
     for idx, loc in enumerate(locations[1:1024+1]):
         w2[idx] =  (coefficient_matrix_HL2_w[loc] - coefficient_matrix_HL2[loc]) / alpha
@@ -145,21 +145,29 @@ def detection(image, watermarked, attacked):
     ########
 
     W1, W2 = extract_watermark(image, watermarked)
-    watermark_originale = merge_watermarks(W1, W2).astype(np.uint8)
+    original_watermark = merge_watermarks(W1, W2).astype(np.uint8)
 
     W1, W2 = extract_watermark(image, attacked)
-    watermark_estratto = merge_watermarks(W1, W2).astype(np.uint8)
+    extracted_watermark = merge_watermarks(W1, W2).astype(np.uint8)
     
-    wm_found = check_wm(watermark_originale, watermark_estratto)
+    wm_found = check_wm(original_watermark, extracted_watermark)
     
     wpsnr_wat_att = wpsnr(watermarked, attacked)
-    return wm_found, wpsnr_wat_att
-    #return wm_found, wpsnr_wat_att, watermark_estratto #use this for ROCCurve.py
+
+    plt.figure(figsize=(15, 6))
+    plt.subplot(121)
+    plt.title('Original WM')
+    plt.imshow(original_watermark, cmap='gray')
+    plt.subplot(122)
+    plt.title('Extracted WM')
+    plt.imshow(extracted_watermark, cmap='gray')
+    plt.show()
+
+    return wm_found, wpsnr_wat_att, extracted_watermark
 
 if __name__ == "__main__":
 
-    #wm_found, wpsnr_wat_att, _ = detection(image, watermarked, attacked)
-    wm_found, wpsnr_wat_att, _ = detection('lena.bmp', 'watermarked.bmp', 'attacked.bmp')
+    wm_found, wpsnr_wat_att, extracted_watermark = detection('lena.bmp', 'watermarked.bmp', 'attacked.bmp')
 
     if wm_found == 1:
         print(f'{colors.GREEN}Mark has been found{colors.END}\nwPSNR: %.2fdB' % wpsnr_wat_att)
