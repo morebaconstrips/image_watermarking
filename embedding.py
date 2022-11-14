@@ -7,7 +7,7 @@ import cv2
 import pywt
 from scipy.signal import convolve2d
 from math import sqrt
-from attacks import *
+#from attacks import *
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
@@ -28,7 +28,7 @@ if not os.path.isfile('csf.csv'):
 #IMG_PATH='lena.bmp'
 MARK_SIZE = 1024
 BLOCK_SIZE = 4
-ALPHA = 1
+ALPHA = 2
 
 # Load the cover image
 #image = cv2.imread(IMG_PATH, 0)
@@ -190,14 +190,9 @@ def compute_thr(sim, mark_size, w):
 
 if __name__ == "__main__":
 
-    for img in os.listdir('images'):
-        image = cv2.imread('images/' + img, 0)
+    image = cv2.imread('lena.bmp', 0)
         
-        watermarked = embedding(image, mark)
-        cv2.imwrite('watermarked_images/' + img[:-4] + '_youshallnotmark.bmp', watermarked)
-        w = wpsnr(image, watermarked)
-        print(f'wPSNR {img} - {img[:-4]}_watermarked.bmp: %.2fdB' % w)
-
-    # Compute quality between the original and the watermarked image
-    #print('\nCompute quality between the original and the watermarked image')
-
+    watermarked = embedding(image, mark)
+    cv2.imwrite('watermarked.bmp', watermarked)
+    w = wpsnr(image, watermarked)
+    print(f'wPSNR lena.bmp - watermarked.bmp: %.2fdB' % w)
